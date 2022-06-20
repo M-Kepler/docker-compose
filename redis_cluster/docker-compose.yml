@@ -1,0 +1,94 @@
+version: '2'   
+services:
+    redis01:
+        image: redis:alpine
+        hostname: redis01
+        container_name: redis01
+        networks:
+            docker-network:
+                ipv4_address: 172.18.0.2
+        ports:
+            - "7001:6379"
+        volumes:
+            - "./etc/redis/:/etc/redis/"
+            - "./data/redis/node1:/data"
+        command:
+           redis-server /etc/redis/redis.conf
+    redis02:
+        image: redis:alpine
+        hostname: redis02
+        container_name: redis02
+        networks:
+            docker-network:
+                ipv4_address: 172.18.0.3
+        ports:
+            - "7002:6379"
+        volumes:
+            - "./etc/redis/:/etc/redis/"
+            - "./data/redis/node2:/data"
+        command:
+           redis-server /etc/redis/redis.conf
+    redis03:
+        image: redis:alpine
+        hostname: redis03
+        container_name: redis03
+        networks:
+            docker-network:
+                ipv4_address: 172.18.0.4
+        ports:
+            - "7003:6379"
+        volumes:
+            - "./etc/redis/:/etc/redis/"
+            - "./data/redis/node3:/data"
+        command:
+            redis-server /etc/redis/redis.conf
+    redis04:
+        image: redis:alpine
+        hostname: redis04
+        container_name: redis04
+        networks:
+            docker-network:
+                ipv4_address: 172.18.0.5
+        ports:
+            - "7004:6379"
+        volumes:
+            - "./etc/redis/:/etc/redis/"
+            - "./data/redis/node4:/data"
+        command:
+            redis-server /etc/redis/redis.conf
+    redis05:
+        image: redis:alpine
+        hostname: redis05
+        container_name: redis05
+        networks:
+            docker-network:
+                ipv4_address: 172.18.0.6
+        ports:
+            - "7005:6379"
+        volumes:
+            - "./etc/redis/:/etc/redis/"
+            - "./data/redis/node5:/data"
+        command:
+            redis-server /etc/redis/redis.conf
+    redis06:
+        image: redis:alpine
+        hostname: redis06
+        container_name: redis06
+        networks:
+            docker-network:
+                ipv4_address: 172.18.0.7
+        ports:
+            - "7006:6379"
+        volumes:
+            - "./etc/redis/:/etc/redis/"
+            - "./data/redis/node6:/data"
+        command:
+            redis-server /etc/redis/redis.conf
+        
+networks:
+    docker-network:
+        ipam:
+            config:
+                - subnet: 172.18.0.0/16
+                  gateway: 172.18.0.1
+

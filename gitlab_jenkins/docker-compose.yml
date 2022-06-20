@@ -1,0 +1,35 @@
+version: '3'
+services:
+    gitlab:
+      image: 'twang2218/gitlab-ce-zh:9.4'
+      restart: always
+      container_name: 'gitlab'
+      privileged: true
+      hostname: 'gitlab'
+      environment:
+        TZ: 'Asia/Shanghai'
+        GITLAB_OMNIBUS_CONFIG: |
+          external_url 'http://192.168.152.204或者域名'
+          gitlab_rails['time_zone'] = 'Asia/Shanghai'
+          gitlab_rails['smtp_enable'] = true
+          gitlab_rails['smtp_address'] = "smtp.163.com"
+          gitlab_rails['smtp_port'] = 465
+          gitlab_rails['smtp_user_name'] = "xxx@163.com"
+          gitlab_rails['smtp_password'] = "xxx"
+          gitlab_rails['smtp_domain'] = "163.com"
+          gitlab_rails['smtp_authentication'] = "login"
+          gitlab_rails['smtp_enable_starttls_auto'] = true
+          gitlab_rails['smtp_tls'] = true
+          gitlab_rails['gitlab_email_from'] = 'xxx@163.com'
+          gitlab_rails['gitlab_shell_ssh_port'] = 220
+          unicorn['port'] = 8888
+          nginx['listen_port'] = 80
+      ports:
+        - '8081:80'
+        - '443:443'
+        - '220:22'
+      volumes:
+        - /data/gitlab/config:/etc/gitlab
+        - /data/gitlab/data:/var/opt/gitlab
+        - /data/gitlab/logs:/var/log/gitlab
+
