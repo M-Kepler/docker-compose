@@ -34,10 +34,11 @@ services:
     # container_name: broker1
     ports:
       - "9091:9091"
-    external_links:
-      - zoo1
-      - zoo2
-      - zoo3
+    # 同一个 docker-compose.yml 中，不需要外部链接
+    # external_links:
+    # - zoo1
+    # - zoo2
+    # - zoo3
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ADVERTISED_HOST_NAME: broker1
@@ -48,6 +49,7 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker1:9091
     volumes:
       - "broker1-data:/kafka"
+    depends_on: [zoo1, zoo2, zoo3]
   broker2:
     image: wurstmeister/kafka
     restart: always
@@ -55,10 +57,10 @@ services:
     # container_name: broker2
     ports:
       - "9092:9092"
-    external_links:
-      - zoo1
-      - zoo2
-      - zoo3
+    # external_links:
+    # - zoo1
+    # - zoo2
+    # - zoo3
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ADVERTISED_HOST_NAME: broker2
@@ -69,6 +71,7 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker2:9092
     volumes:
       - "broker2-data:/kafka"
+    depends_on: [zoo1, zoo2, zoo3]
   broker3:
     image: wurstmeister/kafka
     restart: always
@@ -76,10 +79,10 @@ services:
     # container_name: broker3
     ports:
       - "9093:9093"
-    external_links:
-      - zoo1
-      - zoo2
-      - zoo3
+    # external_links:
+    # - zoo1
+    # - zoo2
+    # - zoo3
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ADVERTISED_HOST_NAME: broker3
@@ -90,6 +93,7 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker3:9093
     volumes:
       - "broker3-data:/kafka"
+    depends_on: [zoo1, zoo2, zoo3]
 
   ##################################### kafka-manager #####################################
   kafka-manager:
@@ -99,13 +103,13 @@ services:
     hostname: kafka-manager
     ports:
       - "9002:9000"
-    external_links: # 连接本compose文件以外的container
-      - broker1
-      - broker2
-      - broker3
-      - zoo1
-      - zoo2
-      - zoo3
+    # external_links: # 连接本compose文件以外的container
+    # - broker1
+    # - broker2
+    # - broker3
+    # - zoo1
+    # - zoo2
+    # - zoo3
     environment:
       ZK_HOSTS: zoo1:2181,zoo2:2181,zoo3:2181
       KAFKA_BROKERS: broker1:9091,broker2:9092,broker3:9093
