@@ -1,8 +1,10 @@
 - [参考资料](#参考资料)
 - [测试一下](#测试一下)
-  - [zookeeper](#zookeeper)
-  - [kafka](#kafka)
-  - [kafka-manager](#kafka-manager)
+  - [按集群拆分 yml，接入已有 zookeeper 集群](#按集群拆分-yml接入已有-zookeeper-集群)
+    - [zookeeper](#zookeeper)
+    - [kafka](#kafka)
+    - [kafka-manager](#kafka-manager)
+  - [全写到一个文件中](#全写到一个文件中)
 
 ## 参考资料
 
@@ -18,9 +20,11 @@
 
 ## 测试一下
 
+### 按集群拆分 yml，接入已有 zookeeper 集群
+
 **因为和 zookeeper 集群分开配置，所以先进入 `zookeeper_cluster` 目录下启动 zookeeper 集群**
 
-### zookeeper
+#### zookeeper
 
 [kafka 开启 jmx_port 后，报端口被占用](https://blog.csdn.net/weixin_37642251/article/details/90405635)
 
@@ -50,7 +54,7 @@ quit
 
 ```
 
-### kafka
+#### kafka
 
 ```sh
 # 进入节点 1 的容器
@@ -66,7 +70,7 @@ kafka-topics.sh --create --bootstrap-server broker1:9091 broker2:9092 broker3:90
 kafka-topics.sh --describe --bootstrap-server broker1:9091 broker2:9092 broker3:9093 --topic test
 ```
 
-### kafka-manager
+#### kafka-manager
 
 ```sh
 # 拉起管理服务
@@ -74,3 +78,12 @@ docker-compose -f kafka-manager.yml up
 ```
 
 浏览器访问 http://localhost:9002/ ，通过 `docker inspect [zookeeper_node_container_id]` 拿到 zookeeper 节点地址，填入 zookeeper 集群地址
+
+### 全写到一个文件中
+
+所有配置写到一个里面了，直接启动即可；配置和原有的差不多，只不过注释掉了网络部分。
+
+```sh
+cd kafka_cluster_all_in_one
+docker-compose up
+```

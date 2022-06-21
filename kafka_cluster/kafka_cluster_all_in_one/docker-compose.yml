@@ -1,0 +1,121 @@
+version: "2"
+services:
+  ##################################### zookeeper 集群 #####################################
+  zoo1:
+    image: zookeeper
+    restart: always
+    ports:
+      - 2182:2181
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+  zoo2:
+    image: zookeeper
+    restart: always
+    ports:
+      - 2183:2181
+    environment:
+      ZOO_MY_ID: 2
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+  zoo3:
+    image: zookeeper
+    restart: always
+    ports:
+      - 2184:2181
+    environment:
+      ZOO_MY_ID: 3
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
+
+  ##################################### kafka 集群 #####################################
+  broker1:
+    image: wurstmeister/kafka
+    restart: always
+    hostname: broker1
+    # container_name: broker1
+    ports:
+      - "9091:9091"
+    external_links:
+      - zoo1
+      - zoo2
+      - zoo3
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ADVERTISED_HOST_NAME: broker1
+      KAFKA_ADVERTISED_PORT: 9091
+      KAFKA_HOST_NAME: broker1
+      KAFKA_ZOOKEEPER_CONNECT: zoo1:2181,zoo2:2181,zoo3:2181
+      KAFKA_LISTENERS: PLAINTEXT://broker1:9091
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker1:9091
+    volumes:
+      - "broker1-data:/kafka"
+  broker2:
+    image: wurstmeister/kafka
+    restart: always
+    hostname: broker2
+    # container_name: broker2
+    ports:
+      - "9092:9092"
+    external_links:
+      - zoo1
+      - zoo2
+      - zoo3
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ADVERTISED_HOST_NAME: broker2
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_HOST_NAME: broker2
+      KAFKA_ZOOKEEPER_CONNECT: zoo1:2181,zoo2:2181,zoo3:2181
+      KAFKA_LISTENERS: PLAINTEXT://broker2:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker2:9092
+    volumes:
+      - "broker2-data:/kafka"
+  broker3:
+    image: wurstmeister/kafka
+    restart: always
+    hostname: broker3
+    # container_name: broker3
+    ports:
+      - "9093:9093"
+    external_links:
+      - zoo1
+      - zoo2
+      - zoo3
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ADVERTISED_HOST_NAME: broker3
+      KAFKA_ADVERTISED_PORT: 9093
+      KAFKA_HOST_NAME: broker3
+      KAFKA_ZOOKEEPER_CONNECT: zoo1:2181,zoo2:2181,zoo3:2181
+      KAFKA_LISTENERS: PLAINTEXT://broker3:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker3:9093
+    volumes:
+      - "broker3-data:/kafka"
+
+  ##################################### kafka-manager #####################################
+  kafka-manager:
+    image: sheepkiller/kafka-manager
+    restart: always
+    # container_name: kafa-manager
+    hostname: kafka-manager
+    ports:
+      - "9002:9000"
+    external_links: # 连接本compose文件以外的container
+      - broker1
+      - broker2
+      - broker3
+      - zoo1
+      - zoo2
+      - zoo3
+    environment:
+      ZK_HOSTS: zoo1:2181,zoo2:2181,zoo3:2181
+      KAFKA_BROKERS: broker1:9091,broker2:9092,broker3:9093
+      APPLICATION_SECRET: letmein
+      KM_ARGS: -Djava.net.preferIPv4Stack=true
+volumes:
+  broker1-data:
+  broker2-data:
+  broker3-data:
+# networks:
+# 注意配置和 zookeeper 集群在同一个网络才能通过服务名访问到 zookeeper 容器
+# default:
+# name: zookeeper_cluster_default
