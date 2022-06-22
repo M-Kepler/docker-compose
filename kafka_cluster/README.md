@@ -24,6 +24,11 @@
 
 **因为和 zookeeper 集群分开配置，所以先进入 `zookeeper_cluster` 目录下启动 zookeeper 集群**
 
+```sh
+cd ../zookeeper_cluster
+docker-compose up -d
+```
+
 #### zookeeper
 
 [kafka 开启 jmx_port 后，报端口被占用](https://blog.csdn.net/weixin_37642251/article/details/90405635)

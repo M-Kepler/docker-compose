@@ -2,11 +2,19 @@
 
 **安装 docker-compose**
 
+为了避免版本导致的不必要的麻烦，不建议用 `apt` 安装，统一用以下方式安装新版
+
 ```sh
 # 获取脚本
 $ curl -L https://github.com/docker/compose/releases/download/1.25.0-rc2/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
+
 # 赋予执行权限
 $chmod +x /usr/local/bin/docker-compose
+
+# 查看版本
+docker-compose -version
+# apt 安装的是 1.25 的版本
+docker-compose version 1.27.2, build 18f557f9
 ```
 
 **portainer轻量级 docker 管理界面工具**

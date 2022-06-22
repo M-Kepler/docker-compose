@@ -1,32 +1,40 @@
 version: "3"
+
 services:
-  sentinel1:
-    image: redis:alpine
-    container_name: redis-sentinel-1
+  sentinel-1:
+    # image: redis:alpine
+    image: redis
     ports:
       - 26379:26379
-    command: 
+    command:
       - redis-sentinel
       - /usr/local/etc/redis/sentinel.conf
     volumes:
+      # 指定 sentinel.conf 配置文件映射到容器内时直接使用文件映射, 这么做有可能导致哨兵没有写入配置文件的权限
+      # 表现为WARNING: Sentinel was not able to save the new configuration on disk!!!: Device or resource busy.
+      # 解决方案:使用文件夹映射
       - ./sentinel-1.conf:/usr/local/etc/redis/sentinel.conf
-  sentinel2:
-    image: redis:alpine
-    container_name: redis-sentinel-2
+
+  sentinel-2:
+    # image: redis:alpine
+    image: redis
     ports:
-    - 26380:26379
+      - 26380:26379
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - ./sentinel-2.conf:/usr/local/etc/redis/sentinel.conf
-  sentinel3:
-    image: redis:alpine
-    container_name: redis-sentinel-3
+
+  sentinel-3:
+    # image: redis:alpine
+    image: redis
     ports:
       - 26381:26379
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - ./sentinel-3.conf:/usr/local/etc/redis/sentinel.conf
+
 networks:
   # 和 redis 集群放在同一个网络
   default:
-    name: redis_sentinel
+    external:
+      name: redis_sentinel

@@ -2,6 +2,7 @@
 - [部署](#部署)
 - [Redis 主从模式](#redis-主从模式)
 - [测试一下](#测试一下)
+- [手动故障转移](#手动故障转移)
 
 # 参考资料
 
@@ -54,3 +55,9 @@
   1:S 22 Jun 2022 08:08:33.603 # Unable to connect to MASTER: Invalid argument
   1:S 22 Jun 2022 08:08:34.612 * Connecting to MASTER master:6379
   ```
+
+# 手动故障转移
+
+手动切换主从关系
+
+TODO
