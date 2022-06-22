@@ -37,4 +37,20 @@
   docker-compose exec slave1 sh
 
   redis-cli get name
+
+  # 主库读写，从库只读
+  127.0.0.1:6379> set name2 ddddd
+  (error) READONLY You can't write against a read only replica.
+  ```
+
+- 单纯的主从是不具备故障切换能力的，把主节点下线后，整个集群就无法继续提供写服务了
+
+  ```sh
+  # 主节点下线
+  docker-compose stop master
+
+  # 查看从节点日志
+  docker-compose logs slave1
+  1:S 22 Jun 2022 08:08:33.603 # Unable to connect to MASTER: Invalid argument
+  1:S 22 Jun 2022 08:08:34.612 * Connecting to MASTER master:6379
   ```

@@ -1,0 +1,27 @@
+version: "3"
+
+networks:
+  sentinel:
+    name: redis_sentinel
+
+services:
+  master-node:
+    image: redis:alpine
+    command: 
+      - redis-server
+      - --requirepass
+      - redis_pwd
+      - --masterauth
+      - redis_pwd
+    ports:
+      - 6380:6379
+  slave-node1:
+    image: redis:alpine
+    ports:
+      - 6381:6379
+    command: redis-server --slaveof master-node 6379 --requirepass redis_pwd --masterauth redis_pwd
+  slave-node2:
+    image: redis:alpine
+    ports:
+      - 6382:6379
+    command: redis-server --slaveof master-node 6379 --requirepass redis_pwd --masterauth redis_pwd

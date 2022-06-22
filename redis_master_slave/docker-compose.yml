@@ -1,5 +1,10 @@
 version: "3"
 
+volumes:
+  v_master:
+  v_slave1:
+  v_slave2:
+
 networks:
   redis-replication:
     driver: bridge
@@ -16,7 +21,7 @@ services:
       - "6371:6379"
     volumes:
       - "./master/etc/redis.conf:/etc/redis.conf"
-      - "./master/data:/data"
+      - "v_master:/data"
     command: ["redis-server", "/etc/redis.conf"]
     restart: always
     networks:
@@ -30,7 +35,7 @@ services:
       - "6372:6379"
     volumes:
       - "./slave1/etc/redis.conf:/etc/redis.conf"
-      - "./slave1/data:/data"
+      - "v_slave1:/data"
     command: ["redis-server", "/etc/redis.conf"]
     restart: always
     networks:
@@ -44,7 +49,7 @@ services:
       - "6373:6379"
     volumes:
       - "./slave2/etc/redis.conf:/etc/redis.conf"
-      - "./slave2/data:/data"
+      - "v_slave2:/data"
     command: ["redis-server", "/etc/redis.conf"]
     restart: always
     networks:

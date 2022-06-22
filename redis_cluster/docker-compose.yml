@@ -11,7 +11,7 @@ services:
       - "7001:6379"
     volumes:
       - "./etc/redis/:/etc/redis/"
-      - "redis_cluster_node1:/data"
+      - "v_node1:/data"
     command: redis-server /etc/redis/redis.conf
   redis02:
     image: redis:alpine
@@ -24,7 +24,7 @@ services:
       - "7002:6379"
     volumes:
       - "./etc/redis/:/etc/redis/"
-      - "redis_cluster_node2:/data"
+      - "v_node2:/data"
     command: redis-server /etc/redis/redis.conf
   redis03:
     image: redis:alpine
@@ -37,7 +37,7 @@ services:
       - "7003:6379"
     volumes:
       - "./etc/redis/:/etc/redis/"
-      - "redis_cluster_node3:/data"
+      - "v_node3:/data"
     command: redis-server /etc/redis/redis.conf
   redis04:
     image: redis:alpine
@@ -50,7 +50,7 @@ services:
       - "7004:6379"
     volumes:
       - "./etc/redis/:/etc/redis/"
-      - "redis_cluster_node4:/data"
+      - "v_node4:/data"
     command: redis-server /etc/redis/redis.conf
   redis05:
     image: redis:alpine
@@ -63,7 +63,7 @@ services:
       - "7005:6379"
     volumes:
       - "./etc/redis/:/etc/redis/"
-      - "redis_cluster_node5:/data"
+      - "v_node5:/data"
     command: redis-server /etc/redis/redis.conf
   redis06:
     image: redis:alpine
@@ -76,16 +76,16 @@ services:
       - "7006:6379"
     volumes:
       - "./etc/redis/:/etc/redis/"
-      - "redis_cluster_node6:/data"
+      - "v_node6:/data"
     command: redis-server /etc/redis/redis.conf
 
 volumes:
-  redis_cluster_node1:
-  redis_cluster_node2:
-  redis_cluster_node3:
-  redis_cluster_node4:
-  redis_cluster_node5:
-  redis_cluster_node6:
+  v_node1:
+  v_node2:
+  v_node3:
+  v_node4:
+  v_node5:
+  v_node6:
 
 networks:
   docker-network:
