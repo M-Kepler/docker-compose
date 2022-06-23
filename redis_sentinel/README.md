@@ -20,9 +20,7 @@
 
 这里没用 redis.conf 配置文件，通过命令参数指定了
 
-注意，如果设置了 Redis 客户端访问密码 requirepass， 那么也要设置相同的副本集同步密码 masterauth。
-
-另外我们后面使用哨兵模式能够完成故障转移，现有的 Master 可能会变成 Slave，故在当前 Master 容器中也要携带 masterauth 参数。
+注意，如果设置了 Redis 客户端访问密码 requirepass，另外我们后面使用哨兵模式能够完成故障转移，现有的 Master 可能会变成 Slave，故在当前 Master 容器中也要携带 masterauth 参数。
 
 ```sh
 redis-server \
@@ -34,7 +32,16 @@ redis-server \
   --masterauth redis_pwd
 ```
 
-因为 redis 集群和 sentinel 集群共用一个网络，这个网络定义在 redis 集群中，所以先拉起 redis 集群，当然也可以先手动创建网络，然后把两个集群加进去
+因为 redis 集群和 sentinel 集群共用一个 redis 集群中定义的网络，，所以先拉起 redis 集群，当然也可以先手动创建网络，然后把两个集群加进去
+
+**哨兵启动方式**
+
+```sh
+# 方法一
+redis-server /redis/sentinel.conf --sentinel
+
+# 方法二
+```
 
 **拉起 redis 集群**
 
@@ -50,46 +57,25 @@ cd ./sentinel
 docker-compose up
 ```
 
+# 测试一下
+
 **各节点 IP 地如下：**
 
 ```
-master-node: 172.26.0.2
+master-node: 172.126.0.1
 
-slave-node1: 172.26.0.4
-slave-node2: 172.26.0.3
+slave-node1: 172.126.0.2
+slave-node2: 172.126.0.3
 
-sentinel-1: 172.26.0.5
-sentinel-2: 172.26.0.7
-sentinel-3: 172.26.0.6
+sentinel-1: 172.126.0.5
+sentinel-2: 172.126.0.6
+sentinel-3: 172.126.0.7
 ```
-
-# 测试一下
 
 **进入 master 容器，确认两个 slave 已经连接**
 
 ```sh
 $docker-compose -f ./redis/docker-compose.yml exec master-node redis-cli -a redis_pwd info replication
-
-# 主库信息
-role:master
-connected_slaves:2
-
-# 从库信息
-slave0:ip=172.26.0.3,port=6379,state=online,offset=305252,lag=1
-slave1:ip=172.26.0.4,port=6379,state=online,offset=305252,lag=1
-
-master_failover_state:no-failover
-
-# 主从同步所用的 id 和 offset
-master_replid:a80df57875df80925511853cdf056c14a85862e3
-master_replid2:43812844acbaad94a9c1042cc5cbae43af67b86b
-master_repl_offset:305252
-second_repl_offset:278295
-
-repl_backlog_active:1
-repl_backlog_size:1048576
-repl_backlog_first_byte_offset:278295
-repl_backlog_histlen:26958
 
 ```
 
@@ -98,16 +84,6 @@ repl_backlog_histlen:26958
 ```sh
 # 随便进入一个 sentinel 查看状态，端口是 sentinel-1.conf 配置中的端口
 $docker-compose -f ./sentinel/docker-compose.yml exec sentinel-1 redis-cli -p 26379 info sentinel
-# Sentinel
-sentinel_masters:1
-sentinel_tilt:0
-sentinel_tilt_since_seconds:-1
-sentinel_running_scripts:0
-sentinel_scripts_queue_length:0
-sentinel_simulate_failure_flags:0
-
-# 可以看到主库状态
-master0:name=mymaster,status=ok,address=172.26.0.2:6379,slaves=2,sentinels=3
 ```
 
 # 故障转移 failover
@@ -127,82 +103,22 @@ master0:name=mymaster,status=ok,address=172.26.0.2:6379,slaves=2,sentinels=3
 - **sentinel 集群日志**
 
   ```log
-  sentinel-3_1  | 1:X 22 Jun 2022 17:48:37.396 # -tilt #tilt mode exited
-  ##############
-  sentinel-3 发现节点下线
-  ##############
-  sentinel-3_1  | 1:X 22 Jun 2022 17:48:37.474 # +odown master mymaster 172.28.0.2 6379 #quorum 2/2
-  sentinel-3_1  | 1:X 22 Jun 2022 17:48:37.474 # +new-epoch 1
-
-  ##############
-  进行 failover 故障转移
-  ##############
-  sentinel-3_1  | 1:X 22 Jun 2022 17:48:37.474 # +try-failover master mymaster 172.28.0.2 6379
-  sentinel-3_1  | 1:X 22 Jun 2022 17:48:37.500 # +vote-for-leader 56cdcb561350a60f3a2bc00d1dd0cdef75bdcb13 1
-  sentinel-2_1  | 1:X 22 Jun 2022 17:48:37.509 # +new-epoch 1
-
-  ##############
-  投了一票
-  ##############
-  sentinel-2_1  | 1:X 22 Jun 2022 17:48:37.520 # +vote-for-leader 56cdcb561350a60f3a2bc00d1dd0cdef75bdcb13 1
-  sentinel-3_1  | 1:X 22 Jun 2022 17:48:37.521 # 5caaf2e095f6b45378d17ca264833aafef37e842 voted for 56cdcb561350a60f3a2bc00d1dd0cdef75bdcb13 1
-  sentinel-3_1  | 1:X 22 Jun 2022 17:48:37.553 # +elected-leader master mymaster 172.28.0.2 6379
-  sentinel-3_1  | 1:X 22 Jun 2022 17:48:37.553 # +failover-state-select-slave master mymaster 172.28.0.2 6379
-
-  ##############
-  最终选出新的主节点
-  ##############
-  sentinel-3_1  | 1:X 22 Jun 2022 17:48:37.637 # +selected-slave slave 172.28.0.4:6379 172.28.0.4 6379 @ mymaster 172.28.0.2 6379
-  sentinel-3_1  | 1:X 22 Jun 2022 17:48:37.637 * +failover-state-send-slaveof-noone slave 172.28.0.4:6379 172.28.0.4 6379 @ mymaster 172.28.0.2 6379
-  sentinel-3_1  | 1:X 22 Jun 2022 17:48:37.738 * +failover-state-wait-promotion slave 172.28.0.4:6379 172.28.0.4 6379 @ mymaster 172.28.0.2 6379
-
-  ##############
-  sentinel-2 发现节点下线
-  ##############
-  sentinel-2_1  | 1:X 22 Jun 2022 17:48:38.218 # +odown master mymaster 172.28.0.2 6379 #quorum 2/2
-  sentinel-2_1  | 1:X 22 Jun 2022 17:48:38.218 # Next failover delay: I will not start a failover before Wed Jun 22 17:54:37 2022
-  sentinel-3_1  | 1:X 22 Jun 2022 17:48:44.079 # +tilt #tilt mode entered
-  sentinel-2_1  | 1:X 22 Jun 2022 17:48:56.301 # +tilt #tilt mode entered
-  sentinel-3_1  | 1:X 22 Jun 2022 17:49:14.110 # -tilt #tilt mode exited
-  sentinel-3_1  | 1:X 22 Jun 2022 17:49:14.188 # -odown master mymaster 172.28.0.2 6379
-  sentinel-3_1  | 1:X 22 Jun 2022 17:49:14.222 # +promoted-slave slave 172.28.0.4:6379 172.28.0.4 6379 @ mymaster 172.28.0.2 6379
-  sentinel-3_1  | 1:X 22 Jun 2022 17:49:14.222 # +failover-state-reconf-slaves master mymaster 172.28.0.2 6379
-  sentinel-3_1  | 1:X 22 Jun 2022 17:49:14.252 * +slave-reconf-sent slave 172.28.0.3:6379 172.28.0.3 6379 @ mymaster 172.28.0.2 6379
-  sentinel-2_1  | 1:X 22 Jun 2022 17:49:14.253 # +config-update-from sentinel 56cdcb561350a60f3a2bc00d1dd0cdef75bdcb13 172.28.0.5 26379 @ mymaster 172.28.0.  2 6379
-  sentinel-2_1  | 1:X 22 Jun 2022 17:49:14.253 # +switch-master mymaster 172.28.0.2 6379 172.28.0.4 6379
-  sentinel-2_1  | 1:X 22 Jun 2022 17:49:14.253 * +slave slave 172.28.0.3:6379 172.28.0.3 6379 @ mymaster 172.28.0.4 6379
-  sentinel-2_1  | 1:X 22 Jun 2022 17:49:19.298 # +tilt #tilt mode entered
-
-
-
-
-
-
-
-
-
-  sentinel-3_1  | 1:X 22 Jun 2022 17:49:27.369 # +tilt #tilt mode entered
-  sentinel-2_1  | 1:X 22 Jun 2022 17:49:49.360 # -tilt #tilt mode exited
-  sentinel-3_1  | 1:X 22 Jun 2022 17:49:57.411 # -tilt #tilt mode exited
-  sentinel-3_1  | 1:X 22 Jun 2022 17:49:57.699 * +slave-reconf-inprog slave 172.28.0.3:6379 172.28.0.3 6379 @ mymaster 172.28.0.2 6379
-  sentinel-3_1  | 1:X 22 Jun 2022 17:49:57.699 * +slave-reconf-done slave 172.28.0.3:6379 172.28.0.3 6379 @ mymaster 172.28.0.2 6379
-  sentinel-3_1  | 1:X 22 Jun 2022 17:49:57.761 # +failover-end master mymaster 172.28.0.2 6379
-  sentinel-3_1  | 1:X 22 Jun 2022 17:49:57.761 # +switch-master mymaster 172.28.0.2 6379 172.28.0.4 6379
-  sentinel-3_1  | 1:X 22 Jun 2022 17:49:57.762 * +slave slave 172.28.0.3:6379 172.28.0.3 6379 @ mymaster 172.28.0.4 6379
-  sentinel-3_1  | 1:X 22 Jun 2022 17:50:02.836 # +tilt #tilt mode entered
-  sentinel-3_1  | 1:X 22 Jun 2022 17:50:32.841 # -tilt #tilt mode exited
   ```
 
 # 坑
 
-- 启动 sentinel 集群式，日志输出警告：**WARNING: Sentinel was not able to save the new configuration on disk!!!: Invalid argument**
+- **启动 sentinel 集群式，日志输出警告：WARNING: Sentinel was not able to save the new configuration on disk!!!: Invalid argument**
 
-  可以不管这个错误
+  指定 sentinel.conf 配置文件映射到容器内时直接使用文件映射, 这么做有可能导致哨兵没有写入配置文件的权限
 
-- 当哨兵的配置 `sentinel monitor mymaster master-node 6379 2` 用到了主机名 `master-node` 时，无法进行故障转移，如果换成实际的 IP，这可以正常进行故障转移
+  解决方案:使用文件夹映射，也可以不管这个错误
 
-  [官方文档所 6.2+ 是支持的](https://redis.io/docs/manual/sentinel/#ip-addresses-and-dns-names)，[但是在 github 上看到有个 close 的 issue](https://github.com/redis/redis/issues/8507)
+- **当哨兵的配置 `sentinel monitor mymaster master-node 6379 2` 用到了主机名 `master-node` 时，无法进行故障转移，如果换成实际的 IP，这可以正常进行故障转移**
 
-  最终由 `redis:alpine` 换成正式版的镜像 `redis:latest` 就没问题了。。。
+  [官方文档说 6.2.6 是支持的](https://redis.io/docs/manual/sentinel/#ip-addresses-and-dns-names)，[但是在 github 上看到有个 close 的 issue](https://github.com/redis/redis/issues/8507)
 
-- TODO sentinel 可不可以公用一份配置
+  最终由 `redis:alpine` 换成正式版的镜像 `redis:latest` 就没问题了。。。尴尬的是 `redis:latest` 是 6.2.6 的版本，`redis:alpine` 是 7.0.2 版本，这个版本还更新一点呢
+
+- **WARNING: Sentinel was not able to save the new configuration on disk!!!: Device or resource busy**
+
+  虽然配置一样的，但是因为在故障转移过程中要修改配置，所以 sentinel 不可以公用一份配置

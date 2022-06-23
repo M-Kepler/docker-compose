@@ -10,10 +10,11 @@ services:
       - redis-sentinel
       - /usr/local/etc/redis/sentinel.conf
     volumes:
-      # 指定 sentinel.conf 配置文件映射到容器内时直接使用文件映射, 这么做有可能导致哨兵没有写入配置文件的权限
-      # 表现为WARNING: Sentinel was not able to save the new configuration on disk!!!: Device or resource busy.
-      # 解决方案:使用文件夹映射
       - ./sentinel-1.conf:/usr/local/etc/redis/sentinel.conf
+    networks:
+      default:
+        ipv4_address: 172.126.0.4
+
 
   sentinel-2:
     # image: redis:alpine
@@ -23,6 +24,10 @@ services:
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - ./sentinel-2.conf:/usr/local/etc/redis/sentinel.conf
+    networks:
+      default:
+        ipv4_address: 172.126.0.5
+
 
   sentinel-3:
     # image: redis:alpine
@@ -32,9 +37,13 @@ services:
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
       - ./sentinel-3.conf:/usr/local/etc/redis/sentinel.conf
+    networks:
+      default:
+        ipv4_address: 172.126.0.6
+
 
 networks:
   # 和 redis 集群放在同一个网络
   default:
     external:
-      name: redis_sentinel
+      name: redis_sentinel-network
