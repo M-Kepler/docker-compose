@@ -24,7 +24,6 @@ services:
       sentinel-network:
         ipv4_address: 172.126.0.1
 
-
   slave-node1:
     # image: redis:alpine
     image: redis
@@ -44,4 +43,3 @@ services:
     networks:
       sentinel-network:
         ipv4_address: 172.126.0.3
-

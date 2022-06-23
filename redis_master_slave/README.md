@@ -3,6 +3,7 @@
 - [主从同步过程](#主从同步过程)
 - [测试一下](#测试一下)
 - [手动切换](#手动切换)
+- [持久化过程](#持久化过程)
 
 # 参考资料
 
@@ -156,4 +157,14 @@ repl_backlog_size:1048576
 repl_backlog_first_byte_offset:16594
 repl_backlog_histlen:28
 
+```
+
+# 持久化过程
+
+```log
+redis-master   | 1:M 23 Jun 2022 04:53:18.035 * 1 changes in 3600 seconds. Saving...
+redis-master   | 1:M 23 Jun 2022 04:53:18.037 * Background saving started by pid 44
+redis-master   | 44:C 23 Jun 2022 04:53:18.091 * DB saved on disk
+redis-master   | 44:C 23 Jun 2022 04:53:18.092 * Fork CoW for RDB: current 0 MB, peak 0 MB, average 0 MB
+redis-master   | 1:M 23 Jun 2022 04:53:18.140 * Background saving terminated with success
 ```
