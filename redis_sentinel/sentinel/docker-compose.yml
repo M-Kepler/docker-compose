@@ -10,7 +10,7 @@ services:
       - redis-sentinel
       - /usr/local/etc/redis/sentinel.conf
     volumes:
-      - ./sentinel-1.conf:/usr/local/etc/redis/sentinel.conf
+      - ./etc/sentinel-1:/usr/local/etc/redis
     networks:
       default:
         ipv4_address: 172.126.0.4
@@ -23,7 +23,7 @@ services:
       - 26380:26379
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
-      - ./sentinel-2.conf:/usr/local/etc/redis/sentinel.conf
+      - ./etc/sentinel-2:/usr/local/etc/redis
     networks:
       default:
         ipv4_address: 172.126.0.5
@@ -36,7 +36,7 @@ services:
       - 26381:26379
     command: redis-sentinel /usr/local/etc/redis/sentinel.conf
     volumes:
-      - ./sentinel-3.conf:/usr/local/etc/redis/sentinel.conf
+      - ./etc/sentinel-3:/usr/local/etc/redis
     networks:
       default:
         ipv4_address: 172.126.0.6
