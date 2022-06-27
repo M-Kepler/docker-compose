@@ -1,4 +1,5 @@
 - [参考资料](#参考资料)
+- [搭建部署：三主三从](#搭建部署三主三从)
 - [测试一下](#测试一下)
   - [创建集群](#创建集群)
   - [操作集群](#操作集群)
@@ -49,6 +50,17 @@
     docker network rm [network_id/network_name]
     ```
 
+## 搭建部署：三主三从
+
+`backup_run_with_config_file` 目录下是指定配置文件来启动；
+
+`./docker-compose.yml` 是通过 redis 命令行启动参数来启动，两者都可以，用命令行启动方式可以更清晰看到修改了哪些配置
+
+```
+docker-compose up -d
+
+```
+
 ## 测试一下
 
 ### 创建集群
@@ -74,16 +86,18 @@ redis-cli --cluster create redis01:6379 redis02:6379 redis03:6379 redis04:6379 r
 **检查状态**
 
 ```sh
-172.118.0.2:6379> cluster info
-cluster_state:ok            ##### 上线状态
-cluster_slots_assigned:16384
+$docker exec -it redis01 redis-cli cluster info
+
+cluster_state:ok                # 上线状态
+cluster_slots_assigned:16384    # 哈希槽数量（16384 是个特别的固定值）
 cluster_slots_ok:16384
 cluster_slots_pfail:0
 cluster_slots_fail:0
-cluster_known_nodes:6
+cluster_known_nodes:6           # 集群中的节点数量
 cluster_size:3
 cluster_current_epoch:6
 cluster_my_epoch:1
+                                # cluster_stats_messages_xxx 握手消息zhuagntai
 cluster_stats_messages_ping_sent:877
 cluster_stats_messages_pong_sent:854
 cluster_stats_messages_sent:1731
@@ -95,16 +109,24 @@ total_cluster_links_buffer_limit_exceeded:0
 
 #### 可以看到这几个主节点的哈希槽范围以及节点间关系
 
-172.118.0.2:6379> cluster nodes
-# <id> <ip:port> <flags> <master> <ping-sent> <pong-recv> <config-epoch> <link-state> <slot> <slot> ... <slot>
-f0e291165832a29dd6ff113a25df004bc15f45c7 172.118.0.4:6379@16379 master - 0 1655831937596 3 connected 10923-16383
+$docker exec -it redis01 redis-cli cluster nodes
 
-1be50b3a5c8b2b0ff5c4e3fb85d84221805d5cba 172.118.0.3:6379@16379 master - 0 1655831938098 2 connected 5461-10922
-0fafb97647be4cdc0849762d36b262638b7e5880 172.118.0.2:6379@16379 myself,master - 0 1655831936000 1 connected 0-5460
+# <id>                节点ID
+# <ip:port>           IP:端口
+# <flags>
+# <master>            角色
+# <ping-sent>         发送的握手包
+# <pong-recv>         接收的握手包
+# <config-epoch>
+# <link-state>        连接状态
+# <slot>              哈希槽范围
+ff640781bdf061bf6a42aca1f8bedb4c6af75d8a 172.118.0.5:6379@16379 slave 396574aa1ca26e7f28af20fcf82db9397b58e46e 0 1656322032000 3 connected
 
-bad2eb7254afe485348d64b666e1c3beea72c6d6 172.118.0.6:6379@16379 slave 0fafb97647be4cdc0849762d36b262638b7e5880 0 1655831936000 1 connected
-2b3a74e38b81be3c3cbc252c2946d0d75b2cede4 172.118.0.7:6379@16379 slave 1be50b3a5c8b2b0ff5c4e3fb85d84221805d5cba 0 1655831937093 2 connected
-fe974e7d882cc83e919a2cab273bbd08158751cb 172.118.0.5:6379@16379 slave f0e291165832a29dd6ff113a25df004bc15f45c7 0 1655831937000 3 connected
+396574aa1ca26e7f28af20fcf82db9397b58e46e 172.118.0.4:6379@16379 master - 0 1656322032744 3 connected 10923-16383
+894347def67fa881b9d6c6c411728508999b9ae7 172.118.0.6:6379@16379 slave 63c8c3aac9fdb1541266f886923645e7e2a0f32b 0 1656322033752 1 connected
+c002b738c8d67574f79b978a6a45b010257d1d31 172.118.0.3:6379@16379 master - 0 1656322033550 2 connected 5461-10922
+dfe9bb6db8f7a8ba98ce933026230771b6426b0c 172.118.0.7:6379@16379 slave c002b738c8d67574f79b978a6a45b010257d1d31 0 1656322033550 2 connected
+63c8c3aac9fdb1541266f886923645e7e2a0f32b 172.118.0.2:6379@16379 myself,master - 0 1656322033000 1 connected 0-5460
 
 ```
 
@@ -112,7 +134,8 @@ fe974e7d882cc83e919a2cab273bbd08158751cb 172.118.0.5:6379@16379 slave f0e2911658
 
 ```sh
 # 随便进入一个节点
-127.0.0.1:6379> cluster slots
+$docker exec -it redis01 redis-cli cluster slots
+
 1) 1) (integer) 0          # 哈希槽范围的开始
    2) (integer) 5460       # 哈希槽范围的结束
    3) 1) "172.118.0.2"     # [主] 节点所在 IP

@@ -10,18 +10,9 @@ services:
     ports:
       - "7001:6379"
     volumes:
+      - "./etc/redis/:/etc/redis/"
       - "v_node1:/data"
-    command:
-      [
-        "redis-server",
-        "--cluster-enabled",
-        "yes",
-        "--cluster-config-file",
-        "nodes.conf",
-        "--cluster-node-timeout",
-        "5000",
-      ]
-
+    command: redis-server /etc/redis/redis.conf
   redis02:
     image: redis:alpine
     hostname: redis02
@@ -32,8 +23,9 @@ services:
     ports:
       - "7002:6379"
     volumes:
+      - "./etc/redis/:/etc/redis/"
       - "v_node2:/data"
-    command: redis-server --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000
+    command: redis-server /etc/redis/redis.conf
 
   redis03:
     image: redis:alpine
@@ -45,16 +37,9 @@ services:
     ports:
       - "7003:6379"
     volumes:
+      - "./etc/redis/:/etc/redis/"
       - "v_node3:/data"
-    command:
-      - "redis-server"
-      - "--cluster-enabled"
-      - "yes"
-      - "--cluster-config-file"
-      - "nodes.conf"
-      - "--cluster-node-timeout"
-      - "5000"
-
+    command: redis-server /etc/redis/redis.conf
   redis04:
     image: redis:alpine
     hostname: redis04
@@ -65,17 +50,9 @@ services:
     ports:
       - "7004:6379"
     volumes:
+      - "./etc/redis/:/etc/redis/"
       - "v_node4:/data"
-    command:
-      [
-        "redis-server",
-        "--cluster-enabled",
-        "yes",
-        "--cluster-config-file",
-        "nodes.conf",
-        "--cluster-node-timeout",
-        "5000",
-      ]
+    command: redis-server /etc/redis/redis.conf
   redis05:
     image: redis:alpine
     hostname: redis05
@@ -86,18 +63,9 @@ services:
     ports:
       - "7005:6379"
     volumes:
+      - "./etc/redis/:/etc/redis/"
       - "v_node5:/data"
-    command:
-      [
-        "redis-server",
-        "--cluster-enabled",
-        "yes",
-        "--cluster-config-file",
-        "nodes.conf",
-        "--cluster-node-timeout",
-        "5000",
-      ]
-
+    command: redis-server /etc/redis/redis.conf
   redis06:
     image: redis:alpine
     hostname: redis06
@@ -108,18 +76,9 @@ services:
     ports:
       - "7006:6379"
     volumes:
+      - "./etc/redis/:/etc/redis/"
       - "v_node6:/data"
-    command:
-      [
-        "redis-server",
-        "--cluster-enabled",
-        "yes",
-        "--cluster-config-file",
-        "nodes.conf",
-        "--cluster-node-timeout",
-        "5000",
-      ]
-
+    command: redis-server /etc/redis/redis.conf
 volumes:
   v_node1:
   v_node2:
