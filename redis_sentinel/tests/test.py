@@ -6,6 +6,8 @@ EMail        : m_kepler@foxmail.com
 Last modified: 2022-06-24 23:55:01
 Filename     : read.py
 Description  : 测试一下 Redis 哨兵集群模式下的读写操作
+
+官网: https://redis-py.readthedocs.io/en/stable/commands.html#sentinel-commands
 """
 
 from redis.sentinel import Sentinel

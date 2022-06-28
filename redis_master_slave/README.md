@@ -1,6 +1,6 @@
 - [参考资料](#参考资料)
-- [部署](#部署)
-- [主从同步过程](#主从同步过程)
+- [搭建部署](#搭建部署)
+  - [主从同步过程](#主从同步过程)
 - [测试一下](#测试一下)
 - [手动切换](#手动切换)
 - [持久化过程](#持久化过程)
@@ -11,18 +11,18 @@
 
 不知道，好多带 slave 的命令都换了名称。。。比如：`replicaof` 是新版本的命令，旧版本是 `slaveof` 命令
 
-# 部署
+# 搭建部署
 
 `etc/redis.conf` 中修改的地方都用 `XXX modify by hjj` 标记出来了
 
-# 主从同步过程
+## 主从同步过程
 
 ```log
 redis-slave-2  | 1:S 23 Jun 2022 03:53:16.918 * Connecting to MASTER master:6379
 redis-slave-2  | 1:S 23 Jun 2022 03:53:16.919 * MASTER <-> REPLICA sync started
 redis-slave-2  | 1:S 23 Jun 2022 03:53:16.919 * Non blocking connect for SYNC fired the event.
 redis-slave-2  | 1:S 23 Jun 2022 03:53:16.920 * Master replied to PING, replication can continue...
-############### 尝试增量同步 ############### 
+############### 尝试增量同步 ###############
 redis-slave-2  | 1:S 23 Jun 2022 03:53:16.920 * Trying a partial resynchronization (request f0ec31572aba5136a6248f7a5a56f79fd08307a6:17084).
 redis-master   | 1:M 23 Jun 2022 03:53:16.921 * Replica 172.125.0.3:6379 asks for synchronization
 
@@ -33,7 +33,7 @@ redis-master   | 1:M 23 Jun 2022 03:53:16.921 * Partial resynchronization not ac
 redis-master   | 1:M 23 Jun 2022 03:53:16.921 * Starting BGSAVE for SYNC with target: disk
 redis-master   | 1:M 23 Jun 2022 03:53:16.921 * Background saving started by pid 21
 
-############### 全量同步 ############### 
+############### 全量同步 ###############
 redis-slave-2  | 1:S 23 Jun 2022 03:53:16.922 * Full resync from master: 12b99900a4b4394725f11a9fdf7ef1dc7d0c1528:16607
 redis-master   | 21:C 23 Jun 2022 03:53:16.963 * DB saved on disk
 redis-master   | 21:C 23 Jun 2022 03:53:16.964 * Fork CoW for RDB: current 0 MB, peak 0 MB, average 0 MB
