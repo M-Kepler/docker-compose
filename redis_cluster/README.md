@@ -7,8 +7,8 @@
       - [查看节点信息](#查看节点信息)
       - [`cluster meet [ip] [port]` 节点握手](#cluster-meet-ip-port-节点握手)
       - [`cluster nodes` 查看集群信息](#cluster-nodes-查看集群信息)
-      - [`cluster addslots [slot_begin]..[slot_end]` 指派槽](#cluster-addslots-slot_beginslot_end-指派槽)
-      - [`cluster replicate [master_node_id]` 设置节点从属关系](#cluster-replicate-master_node_id-设置节点从属关系)
+      - [`cluster addslots [slot_begin]..[slot_end]` 分配哈希槽](#cluster-addslots-slot_beginslot_end-分配哈希槽)
+      - [`cluster replicate [master_node_id]` 设置节点主从关系](#cluster-replicate-master_node_id-设置节点主从关系)
       - [搭建完成，查看集群状态文件按](#搭建完成查看集群状态文件按)
     - [方式二：自动创建](#方式二自动创建)
       - [启动节点](#启动节点-1)
@@ -18,8 +18,9 @@
       - [查看哈希槽详细信息](#查看哈希槽详细信息)
   - [操作集群](#操作集群)
   - [故障转移](#故障转移)
+    - [节点下线](#节点下线)
   - [集群伸缩](#集群伸缩)
-    - [`--cluster add-node [ip]:[port] [ip]:[port]` 新增一个节点](#--cluster-add-node-ipport-ipport-新增一个节点)
+    - [`--cluster add-node [ip]:[port] [ip]:[port]` 新增一个节点，组成四主四从](#--cluster-add-node-ipport-ipport-新增一个节点组成四主四从)
     - [`--cluster reshard` 哈希槽重新分配](#--cluster-reshard-哈希槽重新分配)
     - [`--cluster del-node` 删除一个节点](#--cluster-del-node-删除一个节点)
 
@@ -74,6 +75,8 @@
 
 # 测试一下
 
+![image](https://img-blog.csdn.net/20170607100128135?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvbWVuX3dlbg==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast)
+
 ## 创建集群
 
 **地址规划**
@@ -98,7 +101,7 @@ docker-compose up -d
 
 #### 查看节点信息
 
-此时还都是各自为战，每个节点都是主节点
+新加入的节点都是主节点，因为没有负责槽位，所以不能接受任何读写操作
 
 ```sh
 docker exec -it redis01 redis-cli cluster nodes
@@ -157,7 +160,7 @@ c8d340dabe58411f390c9185368105159652a177 172.118.0.4:6379@16379 master - 0 16564
 ed909c42b9443a3d334aba90a69649a84afdf8ca 172.118.0.3:6379@16379 master - 0 1656429708602 5 connected
 ```
 
-#### `cluster addslots [slot_begin]..[slot_end]` 指派槽
+#### `cluster addslots [slot_begin]..[slot_end]` 分配哈希槽
 
 槽是数据管理和迁移的基本单位。当数据库中的 16384 个槽都分配了节点时，集群处于上线状态（ok）；如果有任意一个槽没有分配节点，则集群处于下线状态（fail）
 
@@ -174,13 +177,14 @@ $docker exec -it redis03 redis-cli cluster addslots {10001..16383}
 OK
 ```
 
-#### `cluster replicate [master_node_id]` 设置节点从属关系
+#### `cluster replicate [master_node_id]` 设置节点主从关系
 
 ```sh
 # redis04    [172.118.0.5]    slave of master3
 # redis05    [172.118.0.6]    slave of master1
 # redis06    [172.118.0.7]    slave of master2
 
+# 设置 redis04 从属于 ID 为 c8d340dabe58411f390c9185368105159652a177 的节点
 $docker exec -it redis04 redis-cli cluster replicate c8d340dabe58411f390c9185368105159652a177
 OK
 
@@ -240,8 +244,8 @@ docker-compose up -d
 
 # 进入其中一个容器， 创建集群
 $docker exec -it redis01 redis-cli --cluster create \
-    redis01:6379 redis02:6379 redis03:6379 \   # 这几个是主
-    redis04:6379 redis05:6379 redis06:6379 \   # 这几个是从
+    redis01:6379 redis02:6379 redis03:6379 \
+    redis04:6379 redis05:6379 redis06:6379 \
     --cluster-replicas 1
 
 # 输出一堆提示信息，说明节点的角色，以各个主节点的哈希槽范围
@@ -378,10 +382,303 @@ $redis-cli -h 172.118.0.2  -c
 
 ## 故障转移
 
+### 节点下线
+
+- 先看一下当前集群状态
+
+  ```sh
+  $docker exec -it redis08 redis-cli cluster nodes
+
+  a6232d9db9731734a14de389710523731ad8fc08 172.118.0.8:6379@16379 master - 0 1656604284000 8 connected 0-1364 5461-6826 10923-12287
+  42b4726eae4da6682497abbff56b667d8f405aed 172.118.0.9:6379@16379 myself,slave a6232d9db9731734a14de389710523731ad8fc08 0 1656604283000 8 connected
+
+  7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 172.118.0.3:6379@16379 master - 0 1656604284556 2 connected 6827-10922
+  e02a93a0b769d7bba70c6d7d08c6c87bc1606ea3 172.118.0.7:6379@16379 slave 7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 0 1656604284000 2 connected
+
+  260f42bc464ab15ef65664f664849fe2d4f19844 172.118.0.4:6379@16379 master - 0 1656604284556 3 connected 12288-16383
+  8d90b044fa1f289371f3d527034c85b068500f69 172.118.0.5:6379@16379 slave 260f42bc464ab15ef65664f664849fe2d4f19844 0 1656604283000 3 connected
+
+  1d143726557521d1741ab987cada6ec04e32a8cb 172.118.0.2:6379@16379 master - 0 1656604284556 1 connected 1365-5460
+  55b75efb62ae21a1b89703b1bb958e6b4c7740db 172.118.0.6:6379@16379 slave 1d143726557521d1741ab987cada6ec04e32a8cb 0 1656604283047 1 connected
+  ```
+
+- 干掉其中一个主节点
+
+  ```sh
+  docker kill redis01
+  ```
+
+- 再查看下集群状态
+
+  ```sh
+  $docker exec -it redis02 redis-cli cluster nodes
+
+  #### 主节点 redis01 显示为 fail 状态
+  1d143726557521d1741ab987cada6ec04e32a8cb 172.118.0.2:6379@16379 master,fail - 1656604853552 1656604851000 1 connected
+  55b75efb62ae21a1b89703b1bb958e6b4c7740db 172.118.0.6:6379@16379 master - 0 1656604877093 9 connected 1365-5460
+
+  a6232d9db9731734a14de389710523731ad8fc08 172.118.0.8:6379@16379 master - 0 1656604875986 8 connected 0-1364 5461-6826 10923-12287
+  42b4726eae4da6682497abbff56b667d8f405aed 172.118.0.9:6379@16379 slave a6232d9db9731734a14de389710523731ad8fc08 0 1656604877000 8 connected
+
+  7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 172.118.0.3:6379@16379 myself,master - 0 1656604876000 2 connected 6827-10922
+  e02a93a0b769d7bba70c6d7d08c6c87bc1606ea3 172.118.0.7:6379@16379 slave 7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 0 1656604876993 2 connected
+
+  260f42bc464ab15ef65664f664849fe2d4f19844 172.118.0.4:6379@16379 master - 0 1656604878000 3 connected 12288-16383
+  8d90b044fa1f289371f3d527034c85b068500f69 172.118.0.5:6379@16379 slave 260f42bc464ab15ef65664f664849fe2d4f19844 0 1656604877000 3 connected
+  ```
+
+- 主节点再上线看看状态
+
+  ```sh
+  $docker start redis01
+
+  $docker exec -it redis02 redis-cli cluster nodes
+
+  # 原来的 redis05 变成主节点 redis01 变成从节点 【完成主从切换】
+  55b75efb62ae21a1b89703b1bb958e6b4c7740db 172.118.0.6:6379@16379 master - 0 1656605035000 9 connected 1365-5460
+  1d143726557521d1741ab987cada6ec04e32a8cb 172.118.0.2:6379@16379 slave 55b75efb62ae21a1b89703b1bb958e6b4c7740db 0 1656605036002 9 connected
+
+  a6232d9db9731734a14de389710523731ad8fc08 172.118.0.8:6379@16379 master - 0 1656605035000 8 connected 0-1364 5461-6826 10923-12287
+  42b4726eae4da6682497abbff56b667d8f405aed 172.118.0.9:6379@16379 slave a6232d9db9731734a14de389710523731ad8fc08 0 1656605034593 8 connected
+
+  260f42bc464ab15ef65664f664849fe2d4f19844 172.118.0.4:6379@16379 master - 0 1656605034000 3 connected 12288-16383
+  8d90b044fa1f289371f3d527034c85b068500f69 172.118.0.5:6379@16379 slave 260f42bc464ab15ef65664f664849fe2d4f19844 0 1656605036103 3 connected
+
+  7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 172.118.0.3:6379@16379 myself,master - 0 1656605035000 2 connected 6827-10922
+  e02a93a0b769d7bba70c6d7d08c6c87bc1606ea3 172.118.0.7:6379@16379 slave 7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 0 1656605034000 2 connected
+  ```
+
 ## 集群伸缩
 
-### `--cluster add-node [ip]:[port] [ip]:[port]` 新增一个节点
+### `--cluster add-node [ip]:[port] [ip]:[port]` 新增一个节点，组成四主四从
+
+- 节点地址规划
+
+  ```log
+  redis07    [172.118.0.8]    slave of master2
+  redis08    [172.118.0.9]    slave of master2
+  ```
+
+- 启动两个节点 redis07 redis08
+
+  ```sh
+  # 启动节点 07
+  docker volume create redis_cluster_v_node7
+
+  docker run -it \
+    --ip=172.118.0.8 \
+    -v redis_cluster_v_node7:/data \
+    --network redis_cluster_docker-network \
+    --name redis07 \
+    redis:alpine \
+    redis-server \
+    --cluster-enabled yes \
+    --cluster-config-file nodes.conf \
+    --cluster-node-timeout 5000
+
+
+  # 启动节点 08
+  docker volume create redis_cluster_v_node8
+
+  docker run -it \
+    --ip=172.118.0.9 \
+    -v redis_cluster_v_node8:/data \
+    --network redis_cluster_docker-network \
+    --name redis08 \
+    redis:alpine \
+    redis-server \
+    --cluster-enabled yes \
+    --cluster-config-file nodes.conf \
+    --cluster-node-timeout 5000
+
+  ```
+
+- 将节点加入集群中
+
+  对于新加入的节点，我们可以有两个操作：
+
+  - 为新节点迁移槽和数据实现扩容
+
+  - 作为其他主节点的从节点负责故障转移
+
+  ```sh
+  # 添加 redis08
+  docker exec -it redis01 redis-cli --cluster add-node 172.118.0.8:6379 172.118.0.2:6379
+
+  # 添加 redis09
+  docker exec -it redis01 redis-cli --cluster add-node 172.119.0.8:6379 172.118.0.2:6379
+  ```
+
+  ```log
+  >>> Adding node 172.118.0.8:6379 to cluster 172.118.0.2:6379
+  >>> Performing Cluster Check (using node 172.118.0.2:6379)
+  M: 1d143726557521d1741ab987cada6ec04e32a8cb 172.118.0.2:6379
+    slots:[0-5460] (5461 slots) master
+    1 additional replica(s)
+  M: 260f42bc464ab15ef65664f664849fe2d4f19844 172.118.0.4:6379
+    slots:[10923-16383] (5461 slots) master
+    1 additional replica(s)
+  S: 55b75efb62ae21a1b89703b1bb958e6b4c7740db 172.118.0.6:6379
+    slots: (0 slots) slave
+    replicates 1d143726557521d1741ab987cada6ec04e32a8cb
+  S: e02a93a0b769d7bba70c6d7d08c6c87bc1606ea3 172.118.0.7:6379
+    slots: (0 slots) slave
+    replicates 7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c
+  M: 7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 172.118.0.3:6379
+    slots:[5461-10922] (5462 slots) master
+    1 additional replica(s)
+  S: 8d90b044fa1f289371f3d527034c85b068500f69 172.118.0.5:6379
+    slots: (0 slots) slave
+    replicates 260f42bc464ab15ef65664f664849fe2d4f19844
+  [OK] All nodes agree about slots configuration.
+  >>> Check for open slots...
+  >>> Check slots coverage...
+  [OK] All 16384 slots covered.
+  ```
+
+  看下集群节点信息
+
+  ```log
+  $ docker exec -it redis01 redis-cli cluster nodes
+  260f42bc464ab15ef65664f664849fe2d4f19844 172.118.0.4:6379@16379 master - 0 1656603077905 3 connected 10923-16383
+  55b75efb62ae21a1b89703b1bb958e6b4c7740db 172.118.0.6:6379@16379 slave 1d143726557521d1741ab987cada6ec04e32a8cb 0 1656603076795 1 connected
+  1d143726557521d1741ab987cada6ec04e32a8cb 172.118.0.2:6379@16379 myself,master - 0 1656603075000 1 connected 0-5460
+  e02a93a0b769d7bba70c6d7d08c6c87bc1606ea3 172.118.0.7:6379@16379 slave 7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 0 1656603078000 2 connected
+
+  ======================================== 节点被添加进来了
+  42b4726eae4da6682497abbff56b667d8f405aed 172.118.0.9:6379@16379 master - 0 1656603078402 7 connected
+  ======================================== 节点被添加进来了
+  a6232d9db9731734a14de389710523731ad8fc08 172.118.0.8:6379@16379 master - 0 1656603077000 0 connected
+
+  7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 172.118.0.3:6379@16379 master - 0 1656603077000 2 connected 5461-10922
+  8d90b044fa1f289371f3d527034c85b068500f69 172.118.0.5:6379@16379 slave 260f42bc464ab15ef65664f664849fe2d4f19844 0 1656603078600 3 connected
+
+  ```
 
 ### `--cluster reshard` 哈希槽重新分配
 
+和上面一样，先分配哈希槽，再设置主从关系
+
+借助 `redis-cli --cluster reshard` 命令对集群重新分片，使得各节点槽位均衡（分别从其他节点中迁移一些 slot 到新节点中）
+
+- 重新分配哈希槽
+
+  ```sh
+  # 对 redis07 这个节点的哈希槽进行 reshard
+  $docker exec -it redis01 redis-cli --cluster reshard 172.118.0.8 6379
+
+  #####
+  一共 16384 个哈希槽需要分配（全部哈希槽分配到节点了，集群才算上线）
+
+  我们平均一下到四个主节点，16384 / 4 = 4096，每个节点是 4096 个哈希槽，即要把其他三个节点中一共 4096 个哈希槽移到新加进来的节点
+
+  配置过程中需要你输入一下信息：
+
+  那个节点接收这些哈希槽
+
+  从那个节点移出哈希槽
+
+  #####
+
+  ```
+
+  ```log
+  >>> Performing Cluster Check (using node 172.118.0.8:6379)
+  M: a6232d9db9731734a14de389710523731ad8fc08 172.118.0.8:6379
+     slots: (0 slots) master
+  S: 55b75efb62ae21a1b89703b1bb958e6b4c7740db 172.118.0.6:6379
+     slots: (0 slots) slave
+     replicates 1d143726557521d1741ab987cada6ec04e32a8cb
+  M: 1d143726557521d1741ab987cada6ec04e32a8cb 172.118.0.2:6379
+     slots:[0-5460] (5461 slots) master
+     1 additional replica(s)
+  S: e02a93a0b769d7bba70c6d7d08c6c87bc1606ea3 172.118.0.7:6379
+     slots: (0 slots) slave
+     replicates 7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c
+  S: 8d90b044fa1f289371f3d527034c85b068500f69 172.118.0.5:6379
+     slots: (0 slots) slave
+     replicates 260f42bc464ab15ef65664f664849fe2d4f19844
+  M: 42b4726eae4da6682497abbff56b667d8f405aed 172.118.0.9:6379
+     slots: (0 slots) master
+  M: 260f42bc464ab15ef65664f664849fe2d4f19844 172.118.0.4:6379
+     slots:[10923-16383] (5461 slots) master
+     1 additional replica(s)
+  M: 7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 172.118.0.3:6379
+     slots:[5461-10922] (5462 slots) master
+     1 additional replica(s)
+  [OK] All nodes agree about slots configuration.
+  >>> Check for open slots...
+  >>> Check slots coverage...
+  [OK] All 16384 slots covered.
+
+  # 问你想要移除多少个哈希槽
+  How many slots do you want to move (from 1 to 16384)?
+
+  # 问你哪个节点接收这些哈希槽
+  What is the receiving node ID?
+
+  # 问你从哪些节点移除哈希槽
+  Please enter all the source node IDs.
+  Source node #1:
+
+  ```
+
+- 再看一下节点状态
+
+  ```sh
+  $docker exec -it redis01 redis-cli cluster nodes
+
+  1d143726557521d1741ab987cada6ec04e32a8cb 172.118.0.2:6379@16379 myself,master - 0 1656603906000 1 connected 1365-5460
+  7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 172.118.0.3:6379@16379 master - 0 1656603907000 2 connected 6827-10922
+  260f42bc464ab15ef65664f664849fe2d4f19844 172.118.0.4:6379@16379 master - 0 1656603907000 3 connected 12288-16383
+
+  # 新加入的节点拿了三个哈希槽范围
+  a6232d9db9731734a14de389710523731ad8fc08 172.118.0.8:6379@16379 master - 0 1656603908000 8 connected 0-1364 5461-6826 10923-12287
+
+  42b4726eae4da6682497abbff56b667d8f405aed 172.118.0.9:6379@16379 master - 0 1656603908000 7 connected
+
+  8d90b044fa1f289371f3d527034c85b068500f69 172.118.0.5:6379@16379 slave 260f42bc464ab15ef65664f664849fe2d4f19844 0 1656603907522 3 connected
+  55b75efb62ae21a1b89703b1bb958e6b4c7740db 172.118.0.6:6379@16379 slave 1d143726557521d1741ab987cada6ec04e32a8cb 0 1656603907522 1 connected
+  e02a93a0b769d7bba70c6d7d08c6c87bc1606ea3 172.118.0.7:6379@16379 slave 7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 0 1656603908630 2 connected
+  ```
+
+- 设置节点主从关系
+
+  ```sh
+  # 设置 redis08 从属于 redis07
+  $docker exec -it redis08 redis-cli cluster replicate a6232d9db9731734a14de389710523731ad8fc08
+
+  ```
+
+- 再看一下主从关系
+
+  ```sh
+  $docker exec -it redis08 redis-cli cluster nodes
+
+  1d143726557521d1741ab987cada6ec04e32a8cb 172.118.0.2:6379@16379 master - 0 1656604284556 1 connected 1365-5460
+  7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 172.118.0.3:6379@16379 master - 0 1656604284556 2 connected 6827-10922
+  260f42bc464ab15ef65664f664849fe2d4f19844 172.118.0.4:6379@16379 master - 0 1656604284556 3 connected 12288-16383
+  8d90b044fa1f289371f3d527034c85b068500f69 172.118.0.5:6379@16379 slave 260f42bc464ab15ef65664f664849fe2d4f19844 0 1656604283000 3 connected
+  55b75efb62ae21a1b89703b1bb958e6b4c7740db 172.118.0.6:6379@16379 slave 1d143726557521d1741ab987cada6ec04e32a8cb 0 1656604283047 1 connected
+  e02a93a0b769d7bba70c6d7d08c6c87bc1606ea3 172.118.0.7:6379@16379 slave 7dbfe4058d13ed2530e4755e3ac6aa96f0ca6d8c 0 1656604284000 2 connected
+
+  a6232d9db9731734a14de389710523731ad8fc08 172.118.0.8:6379@16379 master - 0 1656604284000 8 connected 0-1364 5461-6826 10923-12287
+
+  # redis08 从属于 redis07
+  42b4726eae4da6682497abbff56b667d8f405aed 172.118.0.9:6379@16379 myself,slave a6232d9db9731734a14de389710523731ad8fc08 0 1656604283000 8 connected
+  ```
+
 ### `--cluster del-node` 删除一个节点
+
+- 先进行哈希槽迁移
+
+  reshard 命令支持选定操作的节点，支持输入需要接收哈希槽的节点，支持输入需要迁出哈希槽的节点
+
+- 再删除节点
+
+  ```sh
+  # 依次删除从节点 6482 和主节点 6382。
+  # redis-cli --cluster del-node [从节点IP端口] [主节点 ID]
+
+  $redis-cli --cluster del-node 172.118.0.9:6379 a6232d9db9731734a14de389710523731ad8fc08
+  ```
