@@ -18,7 +18,6 @@ Description  : 用 redis-py 读写 redis 集群
 [172.118.0.7]     slave of master2
 """
 
-from email.contentmanager import ContentManager
 import random
 from contextlib import contextmanager
 from redis.cluster import RedisCluster
