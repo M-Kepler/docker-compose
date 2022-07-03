@@ -1,6 +1,26 @@
 version: "3"
 
 services:
-  memcached:
-    image: memcached:latest
-    container_name: "memcached"
+  memcached-master1:
+    image: oktec/repcached:latest
+
+  memcached-master2:
+    image: oktec/repcached:latest
+
+  memcached-master3:
+    image: oktec/repcached:latest
+
+  memcached-master4:
+    image: oktec/repcached:latest
+
+  memcached-slave5:
+    image: oktec/repcached:latest
+
+  memcached-slave6:
+    image: oktec/repcached:latest
+
+  magent-1:
+    image: huangjinjie/magent:0.6
+    environment:
+      MASTER_IP: memcached-master1
+      BACKUP_IP: memcached-slave5
