@@ -11,6 +11,10 @@ services:
       ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
     volumes:
       - zoo1-data:/data
+    networks:
+      zk_cluster_net:
+        ipv4_address: 172.100.0.101
+
   zoo2:
     image: zookeeper
     restart: always
@@ -21,6 +25,10 @@ services:
       ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
     volumes:
       - zoo2-data:/data
+    networks:
+      zk_cluster_net:
+        ipv4_address: 172.100.0.102
+
   zoo3:
     image: zookeeper
     restart: always
@@ -31,8 +39,19 @@ services:
       ZOO_SERVERS: server.1=zoo1:2888:3888;2181 server.2=zoo2:2888:3888;2181 server.3=zoo3:2888:3888;2181
     volumes:
       - zoo3-data:/data
+    networks:
+      zk_cluster_net:
+        ipv4_address: 172.100.0.103
 
 volumes:
   zoo1-data:
   zoo2-data:
   zoo3-data:
+
+networks:
+  zk_cluster_net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.100.0.0/24
