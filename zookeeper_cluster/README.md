@@ -14,6 +14,8 @@
 
 [ZooKeeper 命令行工具 zkCli.sh](https://www.cnblogs.com/f-ck-need-u/p/9232829.html)
 
+![alt](https://images2017.cnblogs.com/blog/546172/201801/546172-20180111225828738-663859686.png)
+
 ## docker-compose.yml 中的环境变量
 
 | 变量          | 描述                                         |
@@ -85,22 +87,23 @@
 
   ```sh
   [zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 2] stat /zk_test
-  cZxid = 0x100000010
-  ctime = Tue Jul 05 07:31:15 UTC 2022
-  mZxid = 0x100000010
-  mtime = Tue Jul 05 07:31:15 UTC 2022
-  pZxid = 0x100000016
-  cversion = 1
-  dataVersion = 0
-  aclVersion = 0
-  ephemeralOwner = 0x0
-  dataLength = 11
+  cZxid = 0x100000010                   # 创建节点的事务 zxid
+      # 每次修改 zookeeper 状态都会收到一个 zxid 形式的时间戳, 也就是 zookeeper 事务 ID。
+      # 事务 ID 是 zookeeper 中所有修改总的次序。每个修改都有唯一的 zxid, 如果 zxid1 小于 zxid2, 那么 zxid1 在 zxid2 之前发生
+  ctime = Tue Jul 05 07:31:15 UTC 2022  # 创建时间
+  mZxid = 0x100000010                   # 最后更新的事务 zxid
+  mtime = Tue Jul 05 07:31:15 UTC 2022  # 修改时间
+  pZxid = 0x100000016                   # 最后更新的子节点
+  cversion = 1                          # znode 子节点变化号，znode 子节点修改次数
+  dataVersion = 0                       # znode 数据变化号
+  aclVersion = 0                        # 访问控制列表变化号
+  ephemeralOwner = 0x0                  # 如果是临时节点，这个是 znode 拥有的 session_id，如果不是临时节点，则为 0
+  dataLength = 11                       # znode 的数据长度
   ```
 
 ### 创建节点
 
 ```sh
-# create 命令
 # create [-s] [-e] path data acl
 ```
 
