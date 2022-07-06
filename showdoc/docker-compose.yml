@@ -1,0 +1,11 @@
+version: "3"
+services:
+  showdoc:
+    image: star7th/showdoc
+    volumes:
+      - showdoc:/var/www/html
+    ports:
+      - 4999:80
+
+volumes:
+  showdoc:
