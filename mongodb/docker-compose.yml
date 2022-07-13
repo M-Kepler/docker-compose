@@ -1,0 +1,39 @@
+version: "3.4"
+services:
+  mongo1:
+    image: mongo:4.4.2
+    network_mode: "host"
+    volumes:
+      - mongo1_data:/data/db
+      - ./conf:/conf
+      - /etc/localtime:/etc/localtime
+    container_name: mongodb1
+    command: mongod --port 27017 --replSet rs --wiredTigerCacheSizeGB 1 --keyFile /conf/auth.key
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=root
+
+  mongo2:
+    image: mongo:4.4.2
+    network_mode: "host"
+    volumes:
+      - mongo2_data:/data/db
+      - ./conf:/conf
+      - /etc/localtime:/etc/localtime
+    container_name: mongodb2
+    command: mongod --port 37017 --replSet rs --wiredTigerCacheSizeGB 1 --keyFile /conf/auth.key
+
+  mongo3:
+    image: mongo:4.4.2
+    network_mode: "host"
+    volumes:
+      - mongo3_data:/data/db
+      - ./conf:/conf
+      - /etc/localtime:/etc/localtime
+    container_name: mongodb3
+    command: mongod --port 47017 --replSet rs --wiredTigerCacheSizeGB 1 --keyFile /conf/auth.key
+
+volumes:
+  mongo1_data:
+  mongo2_data:
+  mongo3_data:
