@@ -7,6 +7,7 @@
   - [删除节点](#删除节点)
   - [查看和重新执行历史命令](#查看和重新执行历史命令)
   - [连接到其他服务器](#连接到其他服务器)
+  - [节点监听](#节点监听)
 
 ## 参考资料
 
@@ -27,7 +28,7 @@
 
 - 连接集群
 
-  连接集群和连接单个节点没啥区别啊感觉？获取的信息都一样
+  XXX 连接集群和连接单个节点没啥区别啊感觉？获取的信息都一样
 
   ```sh
   # 加 -server 参数，指定集群地址
@@ -70,7 +71,6 @@
 
   ```sh
   # 进入其中一个容器
-  # 进入 zookeeper 客户端 /apache-zookeeper-3.8.0-bin/bin/zkCli.sh
   # 默认是连接到 localhost:2181
   $docker-compose exec zoo1 zkCli.sh
 
@@ -123,7 +123,6 @@
 - `create -s` 带序号节点
 
   ```sh
-
   # 创建带序列号的 znode
   [zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 1] create -s /test1 aaaaaaaaa
   Created /zk_test10000000002
@@ -208,4 +207,56 @@ history 命令可以列出最近操作的 10 条命令历史，并给出每个�
 [zk: zoo1:2181,zoo2:2181,zoo3:2181(CLOSED) 7]
 [zk: zoo1:2181,zoo2:2181,zoo3:2181(CLOSED) 7] connect localhost:2181
 
+```
+
+### 节点监听
+
+节点创建、删除、更新 都会触发监听事件
+
+```sh
+# 连接集群
+$docker-compose exec zoo2 zkCli.sh -server zoo1:2181,zoo2:2181,zoo3:2181
+
+# 旧的命令是 stat [path] watch
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 16] stat /abc watch
+'stat path [watch]' has been deprecated. Please use 'stat [-w] path' instead.
+Node does not exist: /abc
+
+# 监听 /abc 节点
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 17] stat -w /abc
+Node does not exist: /abc
+
+# 创建节点，触发 NodeCreated 事件
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 18] create /abc 111
+
+WATCHER::
+
+WatchedEvent state:SyncConnected type:NodeCreated path:/abc
+Created /abc
+
+
+# 添加监听事件
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 21] get -w /abc
+111
+
+# 修改节点，触发 NodeDataChanged 事件
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 22] set /abc 222
+
+WATCHER::
+
+WatchedEvent state:SyncConnected type:NodeDataChanged path:/abc
+
+
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 23] create /hello 333
+Created /hello
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 24] get -w /hello
+333
+
+# 删除节点，触发 NodeDeleted 事件
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 25] delete /hello
+
+WATCHER::
+
+WatchedEvent state:SyncConnected type:NodeDeleted path:/hello
+[zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 26]
 ```
