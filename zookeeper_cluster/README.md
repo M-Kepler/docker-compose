@@ -8,8 +8,9 @@
   - [查看和重新执行历史命令](#查看和重新执行历史命令)
   - [连接到其他服务器](#连接到其他服务器)
   - [节点监听](#节点监听)
+  - [权限控制](#权限控制)
 
-## 参考资料
+# 参考资料
 
 [使用 docker 或者 docker-compose 部署 Zookeeper 集群](https://www.cnblogs.com/shanfeng1000/p/14488665.html)
 
@@ -17,14 +18,14 @@
 
 ![alt](https://images2017.cnblogs.com/blog/546172/201801/546172-20180111225828738-663859686.png)
 
-## docker-compose.yml 中的环境变量
+# docker-compose.yml 中的环境变量
 
 | 变量          | 描述                                         |
 | :------------ | :------------------------------------------- |
 | `ZOO_MY_ID`   | Zookeeper 节点的 ID                          |
 | `ZOO_SERVERS` | Zookeeper 节点列表，多个节点之间使用空格隔开 |
 
-## 测试一下
+# 测试一下
 
 - 连接集群
 
@@ -41,7 +42,7 @@
   version=0
   ```
 
-### 查看节点
+## 查看节点
 
 - `zkServer.sh status` 看一下节点服务角色
 
@@ -50,7 +51,7 @@
   ZooKeeper JMX enabled by default
   Using config: /conf/zoo.cfg
   Client port found: 2181. Client address: localhost. Client SSL: false.
-  Mode: follower                  ##### 角色
+  Mode: follower                  #### 角色
 
   $docker-compose exec zoo2 zkServer.sh status
   ZooKeeper JMX enabled by default
@@ -83,7 +84,7 @@
 
   ```
 
-- `stat` 或 `ls -s` 看一下节点zhuagntai
+- `stat` 或 `ls -s` 看一下节点 zhuagntai
 
   ```sh
   [zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 2] stat /zk_test
@@ -101,7 +102,7 @@
   dataLength = 11                       # znode 的数据长度
   ```
 
-### 创建节点
+## 创建节点
 
 ```sh
 # create [-s] [-e] path data acl
@@ -140,13 +141,13 @@
   Created /test2
   ```
 
-### 修改节点
+## 修改节点
 
 ```sh
 [zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 13] set /zk_test huangjinjie2
 ```
 
-### 删除节点
+## 删除节点
 
 ```sh
 # delete 可以删除节点。但是它不能递归删除，如要删除的节点下有子节点，则删除失败
@@ -157,9 +158,9 @@
 
 ```
 
-### 查看和重新执行历史命令
+## 查看和重新执行历史命令
 
-history 命令可以列出最近操作的 10 条命令历史，并给出每个历史命令的编号。redo命令可以根据历史命令的编号重新调用这些命令。
+history 命令可以列出最近操作的 10 条命令历史，并给出每个历史命令的编号。redo 命令可以根据历史命令的编号重新调用这些命令。
 
 - 查看历史命令
 
@@ -191,7 +192,7 @@ history 命令可以列出最近操作的 10 条命令历史，并给出每个�
 
   ```
 
-### 连接到其他服务器
+## 连接到其他服务器
 
 ```sh
 # 启动，默认连接到 localhost:2181
@@ -209,7 +210,7 @@ history 命令可以列出最近操作的 10 条命令历史，并给出每个�
 
 ```
 
-### 节点监听
+## 节点监听
 
 节点创建、删除、更新 都会触发监听事件
 
@@ -259,4 +260,45 @@ WATCHER::
 
 WatchedEvent state:SyncConnected type:NodeDeleted path:/hello
 [zk: zoo1:2181,zoo2:2181,zoo3:2181(CONNECTED) 26]
+```
+
+## 权限控制
+
+zookeeper 的节点有五种操作权限 crwda：增 CREATE、 删 DELETE、 查 READ、 改 WRITE、 管理 ADMIN；其中 DELETE 是指对子节点的删除权限，其他权限都是指对自身节点的操作权限
+
+身份认证有一下四种方式:
+
+| 认证方式 | 说明                                                                                            |
+| -------- | ----------------------------------------------------------------------------------------------- |
+| `world`  | 默认权限，相当于对全世界都能访问                                                                |
+| `auth`   | 使用 已认证通过的用户认证（client 可以通过 `addauth digest user:pwd` 来添加当前上下文中的授权用户 |
+| `digest` | 使用 用户名:密码 这种方式认证                                                                     |
+| `ip`     | 使用 IP 地址认证                                                                                |
+
+```sh
+$docker-compose exec zoo1 zkCli.sh
+
+# 查看 ACL
+[zk: localhost:2181(CONNECTED) 3] getAcl /huangjinjie
+'world,'anyone
+: cdrwa
+
+# 设置权限
+[zk: localhost:2181(CONNECTED) 4] setAcl /huangjinjie world:anyone:wa
+
+# 查看权限
+[zk: localhost:2181(CONNECTED) 5] getAcl /huangjinjie
+'world,'anyone
+: wa
+
+# 添加用户
+[zk: localhost:2181(CONNECTED) 6] addauth digest huangjinjie:123456
+
+# 设置权限
+[zk: localhost:2181(CONNECTED) 7] setAcl /huangjinjie auth:huangjinjie:123456:rdwca
+
+# 查看权限
+[zk: localhost:2181(CONNECTED) 8] getAcl /huangjinjie
+'digest,'huangjinjie:1pZrDoN1oNpehT9NnS8DBSjjRHQ=
+: cdrwa
 ```
